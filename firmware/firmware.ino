@@ -78,7 +78,6 @@ void setup(void) {
 void loop() {  
 
   if (Serial.available()) {
-    delay(10);
 
     while (Serial.available() > 0){
       char c = Serial.read();
@@ -116,7 +115,7 @@ void parse_message(String message) {
  
     if (message[i] == '<') {
       rgbValue = 100*(message[i+1] -'0') + 10*(message[i+2]-'0') + (message[i+3]-'0');
-      Serial.println(rgbValue);
+//    Serial.println(rgbValue);
       light = 100*(message[i+4] -'0') + 10*(message[i+5]-'0') + (message[i+6]-'0');
       setLED(rgbValue, 255);
     }
