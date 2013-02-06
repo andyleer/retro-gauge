@@ -53,6 +53,9 @@ int time = 0;
 int digitUpdate = 1000; //1 Sec
 unsigned long motorPer;
 int speedSlope = 1739;
+long targetPosition = 0;
+long currentPosition = 0;
+unsigned long nextUpdate;
 
 
 void setup(void) {
@@ -73,9 +76,20 @@ void setup(void) {
   pinMode(LED_BLUE, OUTPUT);
   pinMode(LED_GREEN, OUTPUT);
 
+  nextUpdate = micros();
 }
 
 void loop() {  
+  if (micros() > nextUpdate) {
+    if((targetPosition - currentPosition) > 0) {
+      motor1.stepUp();
+      currentPosition++;
+    } else if((targetPosition - currentPosition) < 0){
+      motor1.stepDown();
+      currentPosition--;
+    }
+    nextUpdate += 6290 - 10*abs(targetPosition - currentPosition);
+  }
 
   if (Serial.available()) {
 
@@ -89,12 +103,6 @@ void loop() {
       }
     }
   }
-  else {
-    //delay(100);
-  }
-  motor1.update();
-
-
 }
 
 void parse_message(String message) {
@@ -103,7 +111,8 @@ void parse_message(String message) {
     if (message[i] == '(') {
       motorVal = 10*(message[i+1]-'0') + (message[i+2]-'0');
       motorPer = motorVal*1000/speedSlope;
-      motor1.setPosition(STEPS*motorPer/100);
+      //motor1.setPosition(STEPS*motorPer/100);
+      targetPosition = STEPS*motorPer/100;
      
       //Update Digits
       setDisplay(LED_CHAR_SET[motorVal/10],LED_CHAR_SET[motorVal%10]);
