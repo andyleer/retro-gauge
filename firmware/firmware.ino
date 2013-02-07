@@ -2,8 +2,10 @@
 
 
 //-----------------------RGB Variables-----------------------------------//
-int LED_RED = 11;
-int LED_BLUE = 10;
+//int LED_RED = 11;
+int LED_RED = 13;
+//int LED_BLUE = 10;
+int LED_BLUE = 12;
 int LED_GREEN = 9;
 int rgbValue = 0;
 int light;
@@ -14,8 +16,10 @@ int light;
 // standard X25.168 range 315 degrees at 1/10 degree steps
 #define STEPS (315*3)
 
-int m1 = 8; //pin 8
-int m2 = 7; //pin 7
+//int m1 = 8; //pin 8
+int m1 = 11; //pin 11
+//int m2 = 7; //pin 7
+int m2 = 10; //pin 10
 int m3 = 5; //pin 5
 int m4 = 6; //pin 6
 static int nextPos;
@@ -55,8 +59,46 @@ unsigned long motorPer;
 int speedSlope = 1739;
 long targetPosition = 0;
 long currentPosition = 0;
+long delta=0;
 unsigned long nextUpdate;
 
+// State  3 2 1 0   Value
+// 0      1 0 0 1   0x9
+// 1      0 0 0 1   0x1
+// 2      0 1 1 1   0x7
+// 3      0 1 1 0   0x6
+// 4      1 1 1 0   0xE
+// 5      1 0 0 0   0x8
+
+static unsigned short pwmValues[][4] = {
+  { 128,   0,   0, 221 }
+  { 160,   0,   0, 246 },
+  { 191,   0,   0, 255 },
+  { 218,   0,   0, 246 },
+  { 238,   0,   0, 221 },
+  { 251,   0,   0, 180 },
+  { 255,   0,   0, 128 },
+  { 251,   0,   0,  66 },
+  { 238,   0,   0,   0 },
+  { 218,   0,  66,   0 },
+  { 191,   0, 128,   0 },
+  { 160,   0, 180,   0 },
+  { 128,   0, 221,   0 },
+  {  95,  66, 246,   0 },
+  {  64, 128, 255,   0 },
+  {  37, 180, 246,   0 },
+  {  17, 221, 221,   0 },
+  {   4, 246, 180,   0 },
+  {   0, 255, 128,   0 },
+  {   4, 246,  66,   0 },
+  {  17, 221,   0,   0 },
+  {  37, 180,   0,  66 },
+  {  64, 128,   0, 128 },
+  {  95,  66,   0, 180 }
+  
+};
+static unsigned short pwmTotal = 24;
+unsigned short pwmState = 0;
 
 void setup(void) {
   Serial.begin(9600);
@@ -80,20 +122,28 @@ void setup(void) {
 }
 
 void loop() {  
+  pwmState++;
+  pwmState = pwmState % 24;
+  analogWrite(m1, pwmValues[pwmState][1]);
+  analogWrite(m2, pwmValues[pwmState][2]);
+  analogWrite(m3, pwmValues[pwmState][3]);
+  analogWrite(m4, pwmValues[pwmState][4]);
+  delayMicroseconds(1000);
+  
+  return;
+  
   if (micros() > nextUpdate) {
-    if((targetPosition - currentPosition) > 0) {
+    delta = targetPosition - currentPosition;
+    if(delta > 0) {
       motor1.stepUp();
       currentPosition++;
-    } else if((targetPosition - currentPosition) < 0){
+    } else if(delta < 0){
       motor1.stepDown();
       currentPosition--;
     }
 //    nextUpdate += 6290 - 10*abs(targetPosition - currentPosition);
-    long delta = abs(targetPosition - currentPosition);
-    if (delta == 0) {
-      nextUpdate = 1000000000;
-    } else {
-      nextUpdate = micros() + 400 + 279841/(delta);
+    if (delta != 0) {
+      nextUpdate = micros() + 400 + 279841/abs(delta);
     }
   }
 
@@ -106,12 +156,7 @@ void loop() {
       if (c == ')' || c =='>'){
         parse_message(input);
         input = "";
-        long delta = abs(targetPosition - currentPosition);
-        if (delta == 0) {
-          nextUpdate = 1000000000;
-        } else {
-          nextUpdate = micros() + 400 + 279841/(delta);
-        }
+        nextUpdate = micros();
       }
     }
   }
