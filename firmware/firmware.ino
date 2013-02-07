@@ -88,7 +88,13 @@ void loop() {
       motor1.stepDown();
       currentPosition--;
     }
-    nextUpdate += 6290 - 10*abs(targetPosition - currentPosition);
+//    nextUpdate += 6290 - 10*abs(targetPosition - currentPosition);
+    long delta = abs(targetPosition - currentPosition);
+    if (delta == 0) {
+      nextUpdate = 1000000000;
+    } else {
+      nextUpdate = micros() + 400 + 279841/(delta);
+    }
   }
 
   if (Serial.available()) {
@@ -100,6 +106,12 @@ void loop() {
       if (c == ')' || c =='>'){
         parse_message(input);
         input = "";
+        long delta = abs(targetPosition - currentPosition);
+        if (delta == 0) {
+          nextUpdate = 1000000000;
+        } else {
+          nextUpdate = micros() + 400 + 279841/(delta);
+        }
       }
     }
   }
