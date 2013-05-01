@@ -29,10 +29,10 @@ import android.widget.ToggleButton;
 
 import com.openxc.sources.DataSourceException;
 import com.openxc.VehicleManager;
+import com.openxc.measurements.BoostPressure;
 import com.openxc.measurements.Odometer;
 import com.openxc.measurements.FuelConsumed;
 import com.openxc.measurements.Measurement;
-import com.openxc.measurements.SteeringWheelAngle;
 import com.openxc.measurements.UnrecognizedMeasurementTypeException;
 import com.openxc.measurements.VehicleSpeed;
 import com.openxc.remote.VehicleServiceException;
@@ -78,17 +78,25 @@ public class GaugeDriverActivity extends Activity {
             "com.ford.openxc.USB_PERMISSION";
 
     static double mSpeed = 0.0;
-    static double mSteeringWheelAngle = 0.0;
+    static double mBoostPressure = 0.0;
     static double mMPG = 0.0;
 
     static int mSpeedCount = 0;
-    static int mSteeringCount = 0;
     static int mFuelCount = 0;
     static int mOdoCount = 0;
 
     static FuelOdoHandler mFuelTotal = new FuelOdoHandler(5000);   //Delay time in milliseconds.
     static FuelOdoHandler mOdoTotal = new FuelOdoHandler(5000);
 
+    BoostPressure.Listener mBoostListener = new BoostPressure.Listener() {
+    	public void receive(Measurement measurement) {
+    		final BoostPressure boost = (BoostPressure) measurement;
+    		mBoostPressure = boost.getValue().doubleValue();
+    		if(mDataUsed == 2)
+                mNewData = true;
+    	}
+    };
+    
     VehicleSpeed.Listener mSpeedListener = new VehicleSpeed.Listener() {
         public void receive(Measurement measurement) {
             final VehicleSpeed speed = (VehicleSpeed) measurement;
@@ -125,16 +133,6 @@ public class GaugeDriverActivity extends Activity {
         }
     };
 
-    SteeringWheelAngle.Listener mSteeringWheelListener = new SteeringWheelAngle.Listener() {
-        public void receive(Measurement measurement) {
-            mSteeringCount++;
-            final SteeringWheelAngle angle = (SteeringWheelAngle) measurement;
-            mSteeringWheelAngle = angle.getValue().doubleValue();
-            if(mDataUsed == 2)
-                mNewData = true;
-        }
-    };
-
     private ServiceConnection mConnection = new ServiceConnection() {
         // Called when the connection with the service is established
         public void onServiceConnected(ComponentName className,
@@ -143,8 +141,8 @@ public class GaugeDriverActivity extends Activity {
             mVehicleManager = ((VehicleManager.VehicleBinder)service).getService();
 
             try {
-                mVehicleManager.addListener(SteeringWheelAngle.class,
-                        mSteeringWheelListener);
+            	mVehicleManager.addListener(BoostPressure.class,
+            			mBoostListener);
                 mVehicleManager.addListener(VehicleSpeed.class,
                         mSpeedListener);
                 mVehicleManager.addListener(FuelConsumed.class,
@@ -201,7 +199,7 @@ public class GaugeDriverActivity extends Activity {
             mStatusText.setText("Using Vehicle Mileage Data");
             break;
         case 2:
-            mStatusText.setText("Using Steering Wheel Angle Data");
+            mStatusText.setText("Using Boost Pressure Data");
             break;
         default:
             Log.d(TAG, "mDataUsed got screwed up somehow.  Fixing in onCreate...");
@@ -317,14 +315,13 @@ public class GaugeDriverActivity extends Activity {
             UpdateStatus("Mileage: " + dValue);
             break;
         case 2:  //Steering wheel angle
-            dValue = mSteeringWheelAngle + 90.0;
+            dValue = mBoostPressure*14.5;
             //Make sure we're never sending a negative number here...
             if (dValue < 0.0)
                 dValue = 0.0;
-            else if (dValue > 180.0)
-                dValue = 180.0;
-            dValue /= 1.81;
-            UpdateStatus("Steering wheel angle: " + dValue);
+            else if (dValue > 25.0)
+                dValue = 25.0;
+            UpdateStatus("Boost Pressure: " + dValue);
             break;
         default:
             Log.d(TAG, "mDataUsed got screwed up.  Fixing in ReceiveTimerMethod...");
@@ -475,12 +472,12 @@ public class GaugeDriverActivity extends Activity {
         mNewData = true;
     }
 
-    public void onSteeringClick(View view) {
+    public void onBoostClick(View view) {
         mDataUsed = 2;
 
-        mStatusText.setText("Using SteeringWheel Angle Data");
+        mStatusText.setText("Using Boost Pressure Data");
         mGaugeMin = 0.0;
-        mGaugeRange = 100.0;
+        mGaugeRange = 25.0;
 
         mNewData = true;
     }

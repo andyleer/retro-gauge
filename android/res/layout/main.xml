@@ -55,12 +55,12 @@
             android:text="Miles Per Gallon" />
 
         <Button
-            android:id="@+id/buttonSteering"
+            android:id="@+id/buttonBoost"
             android:layout_width="fill_parent"
             android:layout_height="match_parent"
             android:layout_weight="0.30"
-            android:text="Steering Wheel Angle" 
-            android:onClick="onSteeringClick"/>
+            android:text="BoostPressure" 
+            android:onClick="onBoostClick"/>
     </LinearLayout>
 
     <TextView
