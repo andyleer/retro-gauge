@@ -26,7 +26,7 @@ SwitecX25 motor1(STEPS,m1,m2,m3,m4);
 //Serial vars
 String input = "";
 int ledVal = 0;
-long motorVal = 0;
+int motorVal = 0;
 
 //-----------------------Display Variables-------------------------------//
 const byte LED_CHAR_SET[10] = {
@@ -126,18 +126,19 @@ void parse_message(String message) {
   for (int i = 0; i <= message.length(); i++) {
     time = millis();
     if (message[i] == '(') {
-      motorVal = 10*(message[i+1]-'0') + (message[i+2]-'0');
-      motorPer = motorVal*1000/speedSlope;
-      //motor1.setPosition(STEPS*motorPer/100);
-      targetPosition = STEPS*motorPer/100;
-     
+      int digitVal = 10*(message[i+1]-'0') + (message[i+2]-'0'); 
       //Update Digits
-      setDisplay(LED_CHAR_SET[motorVal/10],LED_CHAR_SET[motorVal%10]);
-
+      setDisplay(LED_CHAR_SET[digitVal/10],LED_CHAR_SET[digitVal%10]);
 //      Serial.print("Motor % = ");
 //      Serial.println(motorVal);
     }
     
+    if (message[i] == ')') {
+      motorVal = 10*(message[i-2]-'0') + (message[i-1]-'0');
+      motorPer = motorVal*1000/speedSlope;
+      //motor1.setPosition(STEPS*motorPer/100);
+      targetPosition = STEPS*motorPer/100;
+    }
  
     if (message[i] == '<') {
       rgbValue = 100*(message[i+1] -'0') + 10*(message[i+2]-'0') + (message[i+3]-'0');

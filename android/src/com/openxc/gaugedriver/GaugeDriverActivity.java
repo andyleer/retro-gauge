@@ -314,12 +314,9 @@ public class GaugeDriverActivity extends Activity {
             dValue = mMPG;
             UpdateStatus("Mileage: " + dValue);
             break;
-        case 2:  //Steering wheel angle
-            dValue = mBoostPressure*14.5;
-            //Make sure we're never sending a negative number here...
-            if (dValue < 0.0)
-                dValue = 0.0;
-            else if (dValue > 25.0)
+        case 2:  //Boost Pressure
+            dValue = mBoostPressure*14.5; // convert from bar to PSI
+            if (dValue > 25.0)
                 dValue = 25.0;
             UpdateStatus("Boost Pressure: " + dValue);
             break;
