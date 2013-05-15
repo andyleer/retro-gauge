@@ -26,7 +26,6 @@ SwitecX25 motor1(STEPS,m1,m2,m3,m4);
 //Serial vars
 String input = "";
 int ledVal = 0;
-int motorVal = 0;
 
 //-----------------------Display Variables-------------------------------//
 const byte LED_CHAR_SET[10] = {
@@ -37,35 +36,23 @@ const byte LED_CHAR_SET[10] = {
 const byte NONE[1] = {
   B00000000};
 
-int numToSend = 0;
-int tenDigit = 0;
-int singleDigit = 0;
-
 const int dataPin  = 4;  // Pin connected to Pin 14 of 74HC595 (Data)
 const int clockPin = 2;  // Pin connected to Pin 11 of 74HC595 (Clock)
 const int latchPin = 3;  // Pin connected to Pin 12 of 74HC595 (Latch)
 
-int ten = 0;
-int one = 0;
-
 //-----------------------Update Variables-------------------------------//
 int time = 0;
-int digitUpdate = 1000; //1 Sec
-unsigned long motorPer;
-int speedSlope = 1739;
-long targetPosition = 0;
-long currentPosition = 0;
-unsigned long nextUpdate;
-long delta;
-
+double targetPosition = 0;
+int currentPosition = 0;
+long nextUpdate;
+int delta;
 
 void setup(void) {
   Serial.begin(9600);
   Serial.print("Go time!");
 
-  //Zero the position, bring needle to 50%, set to zero  
+  //Zero the position, set to zero  
   motor1.zero();
-
 
   //Display
   pinMode(latchPin, OUTPUT);
@@ -80,7 +67,13 @@ void setup(void) {
   nextUpdate = micros();
 }
 
-void loop() {  
+void loop() {
+
+  updateMotor();
+  
+}
+
+void updateMotor() {
   delta = targetPosition - currentPosition;
   if (micros() > nextUpdate) {
     if((delta) > 0) {
@@ -90,61 +83,54 @@ void loop() {
       motor1.stepDown();
       currentPosition--;
     }
-//    nextUpdate += 6290 - 10*abs(targetPosition - currentPosition);
+    
     if (delta != 0) {
-      nextUpdate = micros() + 400 + 279841/(abs(delta));
-    }
-  }
-
-  if (Serial.available()) {
-
-    while (Serial.available() > 0){
-      char c = Serial.read();
-      input += c;
-
-      if (c == ')' || c =='>'){
-        parse_message(input);
-        input = "";
-//        long delta = abs(targetPosition - currentPosition);
-//        if (delta == 0) {
-//          nextUpdate = 1000000000;
-//        } else {
-//          nextUpdate = micros() + 400 + 279841/(delta);
-//        }
-      }
-      if (c == 'u') {
-        motor1.stepUp();
-      }
-      if (c == 'd') {
-        motor1.stepDown();
-      }
+      nextUpdate = micros() + 400 + 200000/(abs(delta));
     }
   }
 }
 
 void parse_message(String message) {
-  for (int i = 0; i <= message.length(); i++) {
+  Serial.println(message);
+  if(message[0] == '(') {
     time = millis();
-    if (message[i] == '(') {
-      int digitVal = 10*(message[i+1]-'0') + (message[i+2]-'0'); 
-      //Update Digits
-      setDisplay(LED_CHAR_SET[digitVal/10],LED_CHAR_SET[digitVal%10]);
-//      Serial.print("Motor % = ");
-//      Serial.println(motorVal);
-    }
+    int digitVal = 10*(message[1]-'0') + (message[2]-'0'); 
+    //Update Digits
+    setDisplay(LED_CHAR_SET[digitVal/10],LED_CHAR_SET[digitVal%10]);
+  }
     
-    if (message[i] == ')') {
-      motorVal = 10*(message[i-2]-'0') + (message[i-1]-'0');
-      motorPer = motorVal*1000/speedSlope;
-      //motor1.setPosition(STEPS*motorPer/100);
-      targetPosition = STEPS*motorPer/100;
-    }
+  if(message[message.length()-1] == ')') {
+    double motorVal = 10*(message[message.length()-3]-'0') + (message[message.length()-2]-'0');
+    //Convert to a percentage:
+    motorVal = motorVal/100;
+    //Assuming 0 to 180 degree is 0 to 100% and there's 3
+    //steps per degree, calculate the position that matches
+    //the percentage.
+    targetPosition = motorVal*180*3;
+    Serial.println(targetPosition);
+  }
  
-    if (message[i] == '<') {
-      rgbValue = 100*(message[i+1] -'0') + 10*(message[i+2]-'0') + (message[i+3]-'0');
-//    Serial.println(rgbValue);
-      light = 100*(message[i+4] -'0') + 10*(message[i+5]-'0') + (message[i+6]-'0');
-      setLED(rgbValue, 255);
+  if (message[0] == '<') {
+    rgbValue = 100*(message[1] -'0') + 10*(message[2]-'0') + (message[3]-'0');
+    light = 100*(message[4] -'0') + 10*(message[5]-'0') + (message[6]-'0');
+    setLED(rgbValue, 255);
+  }
+}
+
+void serialEvent() {
+  while (Serial.available() > 0){
+    char c = Serial.read();
+    input += c;
+
+    if (c == ')' || c =='>'){
+      parse_message(input);
+      input = "";
+    }
+    if (c == 'u') {
+      motor1.stepUp();
+    }
+    if (c == 'd') {
+      motor1.stepDown();
     }
   }
 }
@@ -172,8 +158,7 @@ void setDisplay(byte display1, byte display2) {
 }
 
 void setLED(int hue, int l){
-  int col[3] = {
-    0,0,0  };
+  int col[3] = {0,0,0};
   getRGB(hue, 255, l, col);
   ledWrite(col[0], col[1], col[2]);
 }
