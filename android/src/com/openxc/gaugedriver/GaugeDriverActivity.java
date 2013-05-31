@@ -25,7 +25,7 @@ import android.widget.TextView;
 import android.widget.ToggleButton;
 
 import com.openxc.VehicleManager;
-import com.openxc.measurements.BoostPressure;
+import com.openxc.gaugedriver.signals.BoostPressure;
 import com.openxc.measurements.Odometer;
 import com.openxc.measurements.FuelConsumed;
 import com.openxc.measurements.Measurement;
